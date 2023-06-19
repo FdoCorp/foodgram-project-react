@@ -1,37 +1,41 @@
-from django.db.models import Sum
-from django_filters.rest_framework import DjangoFilterBackend
+from api.filters import IngredientFilter, RecipeFilter
+from api.permissions import IsAdminAuthorOrReadOnly
+from api.serializers import (
+    FavoriteSerializer,
+    IngredientSerializer,
+    RecipeCreateSerializer,
+    RecipeGetSerializer,
+    ShoppingCartSerializer,
+    TagSerialiser,
+    UserSubscribeRepresentSerializer,
+    UserSubscribeSerializer,
+)
+from api.utils import add_del_recipe_to_m2m, get_shoping_list
 from django.shortcuts import HttpResponse, get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Tag,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from api.filters import IngredientFilter, RecipeFilter
-from api.permissions import IsAdminAuthorOrReadOnly
-from api.serializers import (
-    FavoriteSerializer, IngredientSerializer,
-    RecipeCreateSerializer,
-    RecipeGetSerializer, ShoppingCartSerializer,
-    TagSerialiser,
-    UserSubscribeRepresentSerializer,
-    UserSubscribeSerializer
-)
-from api.utils import create_model_instance, delete_model_instance
-from recipes.models import (
-    Favorite, Ingredient, Recipe,
-    RecipeIngredient, ShoppingCart, Tag
-)
 from users.models import Subscription, User
 
 
 class UserSubscribeView(APIView):
     """Создание/удаление подписки на пользователя."""
+
     def post(self, request, user_id):
         author = get_object_or_404(User, id=user_id)
         serializer = UserSubscribeSerializer(
-            data={'user': request.user.id, 'author': author.id},
-            context={'request': request}
+            data={"user": request.user.id, "author": author.id},
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -40,20 +44,19 @@ class UserSubscribeView(APIView):
     def delete(self, request, user_id):
         author = get_object_or_404(User, id=user_id)
         if not Subscription.objects.filter(
-                user=request.user,
-                author=author
+            user=request.user, author=author
         ).exists():
             return Response(
-                {'errors': 'Вы не подписаны на этого пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"errors": "Вы не подписаны на этого пользователя"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        Subscription.objects.get(user=request.user.id,
-                                 author=user_id).delete()
+        Subscription.objects.get(user=request.user.id, author=user_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserSubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Получение списка всех подписок на пользователей."""
+
     serializer_class = UserSubscribeRepresentSerializer
 
     def get_queryset(self):
@@ -62,18 +65,20 @@ class UserSubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """Получение информации о тегах."""
+
     queryset = Tag.objects.all()
     serializer_class = TagSerialiser
-    permission_classes = (AllowAny, )
+    permission_classes = (AllowAny,)
     pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Получение информации об ингредиентах."""
+
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = (AllowAny, )
-    filter_backends = (DjangoFilterBackend, )
+    permission_classes = (AllowAny,)
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
 
@@ -84,80 +89,68 @@ class RecipeViewSet(viewsets.ModelViewSet):
     Добавление рецептов в избранное и список покупок.
     Отправка файла со списком рецептов.
     """
+
     queryset = Recipe.objects.all()
-    permission_classes = (IsAdminAuthorOrReadOnly, )
+    permission_classes = (IsAdminAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ["get", "post", "patch", "delete"]
 
     def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
+        if self.action in ("list", "retrieve"):
             return RecipeGetSerializer
+        if self.action == "favorite":
+            return FavoriteSerializer
+        if self.action == "shopping_cart":
+            return ShoppingCartSerializer
         return RecipeCreateSerializer
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated, ]
+        methods=["post", "delete"],
+        permission_classes=[
+            IsAuthenticated,
+        ],
     )
     def favorite(self, request, pk):
         """Работа с избранными рецептами.
         Удаление/добавление в избранное.
         """
-        recipe = get_object_or_404(Recipe, id=pk)
-        if request.method == 'POST':
-            return create_model_instance(request, recipe, FavoriteSerializer)
-
-        if request.method == 'DELETE':
-            error_message = 'У вас нет этого рецепта в избранном'
-            return delete_model_instance(
-                request, Favorite,
-                recipe, error_message
-            )
+        serializer_class = self.get_serializer_class()
+        data, status = add_del_recipe_to_m2m(
+            pk, request, serializer_class, Favorite
+        )
+        return Response(data, status)
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated, ]
+        methods=["post", "delete"],
+        permission_classes=[
+            IsAuthenticated,
+        ],
     )
     def shopping_cart(self, request, pk):
         """Работа со списком покупок.
         Удаление/добавление в список покупок.
         """
-        recipe = get_object_or_404(Recipe, id=pk)
-        if request.method == 'POST':
-            return create_model_instance(
-                request, recipe,
-                ShoppingCartSerializer
-            )
-
-        if request.method == 'DELETE':
-            error_message = 'У вас нет этого рецепта в списке покупок'
-            return delete_model_instance(
-                request, ShoppingCart,
-                recipe, error_message
-            )
+        serializer_class = self.get_serializer_class()
+        data, status = add_del_recipe_to_m2m(
+            pk, request, serializer_class, ShoppingCart
+        )
+        return Response(data, status)
 
     @action(
         detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated, ]
+        methods=["get"],
+        permission_classes=[
+            IsAuthenticated,
+        ],
     )
     def download_shopping_cart(self, request):
         """Отправка файла со списком покупок."""
-        ingredients = RecipeIngredient.objects.filter(
-            recipe__carts__user=request.user
-        ).values(
-            'ingredient__name', 'ingredient__measurement_unit'
-        ).annotate(ingredient_amount=Sum('amount'))
-        shopping_list = ['Список покупок:\n']
-        for ingredient in ingredients:
-            name = ingredient['ingredient__name']
-            unit = ingredient['ingredient__measurement_unit']
-            amount = ingredient['ingredient_amount']
-            shopping_list.append(f'\n{name} - {amount}, {unit}')
-        response = HttpResponse(shopping_list, content_type='text/plain')
+        shopping_list = get_shoping_list(request.user)
+        response = HttpResponse(shopping_list, content_type="text/plain")
         response[
-            'Content-Disposition'
-        ] ='attachment; filename="shopping_cart.txt"'
+            "Content-Disposition"
+        ] = 'attachment; filename="shopping_cart.txt"'
         return response
