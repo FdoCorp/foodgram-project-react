@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
+
 from recipes.models import Ingredient, RecipeIngredient
-from rest_framework import status
 
 
 def create_ingredients(ingredients, recipe):
@@ -21,29 +21,30 @@ def create_ingredients(ingredients, recipe):
     RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
 
-def add_del_recipe_to_m2m(recipe_pk, request, serializer_class, model):
-    """Добавить или удалить рецепт в попупки/избранное."""
+def add_recipe_to_m2m(recipe_pk, request, serializer_class):
+    """Добавить рецепт в покупки/избранное."""
     if request.method == "POST":
         data = {"user": request.user.pk, "recipe": recipe_pk}
         serializer = serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return serializer.data, status.HTTP_201_CREATED
+        return serializer.data
 
-    if request.method == "DELETE":
-        deleted, _ = (
-            model.objects.filter(user=request.user, recipe=recipe_pk)
-            .first()
-            .delete()
-        )
-        if deleted:
-            return None, status.HTTP_204_NO_CONTENT
-        return (
-            {"errors": "У вас нет этого рецепта в избранном"},
-            status.HTTP_400_BAD_REQUEST,
-        )
+
+def del_recipe_from_m2m(recipe_pk, request, model):
+    """Удалить рецепт из покупок/избранного."""
+    deleted, _ = (
+        model.objects.filter(user=request.user, recipe=recipe_pk)
+        .first()
+        .delete()
+    )
+    if deleted:
+        return None
+    return {"error": "Рецепт не найден."}
+
 
 def get_shoping_list(user):
+    """Создать список ингредиентов для покупки."""
     ingredients = (
         RecipeIngredient.objects.filter(recipe__carts__user=user)
         .values("ingredient__name", "ingredient__measurement_unit")
