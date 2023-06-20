@@ -1,3 +1,12 @@
+from django.contrib.auth import get_user_model
+from django.shortcuts import HttpResponse, get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAdminAuthorOrReadOnly
 from api.serializers import (
@@ -10,22 +19,11 @@ from api.serializers import (
     UserSubscribeRepresentSerializer,
     UserSubscribeSerializer,
 )
-from api.utils import add_del_recipe_to_m2m, get_shoping_list
-from django.shortcuts import HttpResponse, get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Tag,
-)
-from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from users.models import Subscription, User
+from api.utils import add_recipe_to_m2m, del_recipe_from_m2m, get_shoping_list
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from users.models import Subscription
+
+User = get_user_model()
 
 
 class UserSubscribeView(APIView):
@@ -108,19 +106,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["post", "delete"],
-        permission_classes=[
-            IsAuthenticated,
-        ],
+        permission_classes=[IsAuthenticated],
     )
     def favorite(self, request, pk):
         """Работа с избранными рецептами.
         Удаление/добавление в избранное.
         """
-        serializer_class = self.get_serializer_class()
-        data, status = add_del_recipe_to_m2m(
-            pk, request, serializer_class, Favorite
-        )
-        return Response(data, status)
+        if request.method == "POST":
+            serializer_class = self.get_serializer_class()
+            data = add_recipe_to_m2m(pk, request, serializer_class)
+            status_code = status.HTTP_201_CREATED
+        elif request.method == "DELETE":
+            data = del_recipe_from_m2m(pk, request, Favorite)
+            status_code = status.HTTP_204_NO_CONTENT
+        else:
+            data = {"error": "Недопустимый метод."}
+            status_code = status.HTTP_400_BAD_REQUEST
+        return Response(data, status_code)
 
     @action(
         detail=True,
@@ -133,18 +135,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Работа со списком покупок.
         Удаление/добавление в список покупок.
         """
-        serializer_class = self.get_serializer_class()
-        data, status = add_del_recipe_to_m2m(
-            pk, request, serializer_class, ShoppingCart
-        )
-        return Response(data, status)
+        if request.method == "POST":
+            serializer_class = self.get_serializer_class()
+            data = add_recipe_to_m2m(pk, request, serializer_class)
+            status_code = status.HTTP_201_CREATED
+        elif request.method == "DELETE":
+            data = del_recipe_from_m2m(pk, request, ShoppingCart)
+            status_code = status.HTTP_204_NO_CONTENT
+        else:
+            data = {"error": "Недопустимый метод."}
+            status_code = status.HTTP_400_BAD_REQUEST
+        return Response(data, status_code)
 
     @action(
         detail=False,
         methods=["get"],
-        permission_classes=[
-            IsAuthenticated,
-        ],
+        permission_classes=[IsAuthenticated],
     )
     def download_shopping_cart(self, request):
         """Отправка файла со списком покупок."""

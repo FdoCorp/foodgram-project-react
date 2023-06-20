@@ -1,7 +1,11 @@
-from api.utils import create_ingredients
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
+from api.utils import create_ingredients
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -10,9 +14,9 @@ from recipes.models import (
     ShoppingCart,
     Tag,
 )
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-from users.models import Subscription, User
+from users.models import Subscription
+
+User = get_user_model()
 
 
 class UserSignUpSerializer(UserCreateSerializer):
