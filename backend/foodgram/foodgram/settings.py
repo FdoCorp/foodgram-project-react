@@ -4,7 +4,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "secret_key"
+SECRET_KEY = os.environ.get("SECRET_KEY"', default='secret_key')
 
 DEBUG = os.environ.get("DEBUG")
 
