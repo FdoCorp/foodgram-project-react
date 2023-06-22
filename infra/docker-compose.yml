@@ -7,7 +7,6 @@ services:
       - ../frontend/:/app/result_build/
 
   db:
-    container_name: foodgram-postgres
     image: postgres:13.0-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -17,6 +16,7 @@ services:
 
   backend:
     image: frodo80/foodgram-backend:latest
+    restart: always
     volumes:
       - static_dir:/app/foodgram/static/
       - media_dir:/app/foodgram/media/
