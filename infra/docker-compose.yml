@@ -16,7 +16,6 @@ services:
 
   backend:
     image: frodo80/foodgram-backend:latest
-    restart: always
     volumes:
       - static_dir:/app/foodgram/static/
       - media_dir:/app/foodgram/media/
