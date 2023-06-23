@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.7-alpine
 
 WORKDIR /app
 
@@ -10,4 +10,4 @@ COPY . .
 
 WORKDIR /app/foodgram/
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn foodgram.wsgi:application --bind 0:8000"]
+CMD ["gunicorn", "foodgram_project.wsgi:application", "--bind", "0:8000"]
