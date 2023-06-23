@@ -1,6 +1,6 @@
-FROM python:3.7-alpine
+FROM python:3.11-alpine
 
-WORKDIR /app/foodgram/
+WORKDIR /app
 
 COPY requirements.txt .
 
@@ -8,4 +8,6 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 
 COPY . .
 
-CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0:8000"]
+WORKDIR /app/foodgram/
+
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn foodgram.wsgi:application --bind 0:8000"]
