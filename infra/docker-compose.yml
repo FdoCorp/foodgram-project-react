@@ -1,9 +1,18 @@
 version: '3.3'
 services:
 
+  frontend:
+    container_name: foodgram-react
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend/:/app/result_build/
+
   db:
     container_name: foodgram-postgres
     image: postgres:13.0-alpine
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
@@ -11,7 +20,7 @@ services:
 
   backend:
     container_name: foodgram-django
-    image: frodo80/foodgram-backend:latest
+    build: ../backend/
     restart: always
     volumes:
       - static_dir:/app/foodgram/static/
@@ -20,27 +29,21 @@ services:
       - db
     env_file:
       - ./.env
-
-  frontend:
-    container_name: foodgram-react
-    image: frodo80/foodgram-frontend:latest
-    volumes:
-      - ../frontend/:/app/result_build/
-    depends_on:
-      - backend
+    ports:
+      - "8000:8000"
 
   nginx:
     container_name: foodgram-nginx
     image: nginx:1.23-alpine
     ports:
       - "80:80"
-
+    restart: always
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ../frontend/build:/usr/share/nginx/html/
-      - ../docs/:/usr/share/nginx/html/api/docs/
-      - static_dir:/var/html/static/
-      - media_dir:/var/html/media/
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/build:/usr/share/nginx/html/
+      - ./docs/:/usr/share/nginx/html/api/docs/
+      - static_dir:/etc/nginx/html/static/
+      - media_dir:/etc/nginx/html/media/
     depends_on:
       - backend
       - frontend
@@ -49,4 +52,4 @@ volumes:
   static_dir:
   media_dir:
   postgres_data:
-
+...
