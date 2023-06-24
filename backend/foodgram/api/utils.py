@@ -22,7 +22,7 @@ def create_ingredients(ingredients, recipe):
 
 
 def add_recipe_to_m2m(recipe_pk, request, serializer_class):
-    """Добавить рецепт в покупки/избранное."""
+    """Добавить рецепт в попупки/избранное."""
     if request.method == "POST":
         data = {"user": request.user.pk, "recipe": recipe_pk}
         serializer = serializer_class(data=data)
@@ -32,7 +32,7 @@ def add_recipe_to_m2m(recipe_pk, request, serializer_class):
 
 
 def del_recipe_from_m2m(recipe_pk, request, model):
-    """Удалить рецепт из покупок/избранного."""
+    """Удалить рецепт из попупок/избранного."""
     deleted, _ = (
         model.objects.filter(user=request.user, recipe=recipe_pk)
         .first()
@@ -40,11 +40,11 @@ def del_recipe_from_m2m(recipe_pk, request, model):
     )
     if deleted:
         return None
-    return {"error": "Рецепт не найден."}
+    return {"error": "Рецепт не найлен."}
 
 
 def get_shoping_list(user):
-    """Создать список ингредиентов для покупки."""
+    """Создать список ингридиентов для покупки."""
     ingredients = (
         RecipeIngredient.objects.filter(recipe__carts__user=user)
         .values("ingredient__name", "ingredient__measurement_unit")

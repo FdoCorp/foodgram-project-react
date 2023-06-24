@@ -2,7 +2,10 @@ version: '3.3'
 services:
 
   frontend:
-    image: frodo80/foodgram-frontend:latest
+    container_name: foodgram-react
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     volumes:
       - ./frontend/:/app/result_build/
 
@@ -16,7 +19,8 @@ services:
       - ./.env
 
   backend:
-    image: frodo80/foodgram-backend:latest
+    container_name: foodgram-django
+    build: ../backend/
     restart: always
     volumes:
       - static_dir:/app/foodgram/static/
