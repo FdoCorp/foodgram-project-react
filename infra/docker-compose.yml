@@ -2,7 +2,7 @@ version: '3.3'
 services:
 
   frontend:
-    image: frodo80/foddgram-frontend:latest
+    image: frodo80/foodgram-frontend:latest
     volumes:
       - ./frontend/:/app/result_build/
 
