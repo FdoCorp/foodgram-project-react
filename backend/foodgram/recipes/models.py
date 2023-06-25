@@ -3,12 +3,16 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django_resized import ResizedImageField
 
+from recipes.validators import validate_hex_color
+
 User = get_user_model()
 
 
 class Tag(models.Model):
     name = models.CharField("Название", max_length=200, unique=True)
-    color = models.CharField("Цвет", max_length=7, unique=True)
+    color = models.CharField(
+        "Цвет", max_length=7, unique=True, validators=(validate_hex_color,)
+    )
     slug = models.SlugField("Слаг", max_length=200, unique=True)
 
     class Meta:

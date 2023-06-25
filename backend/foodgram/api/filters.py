@@ -1,3 +1,4 @@
+from django.db.models import Case, IntegerField, When
 from django_filters.rest_framework import FilterSet, filters
 
 from recipes.models import Ingredient, Recipe, Tag
@@ -30,8 +31,19 @@ class RecipeFilter(FilterSet):
 
 
 class IngredientFilter(FilterSet):
-    name = filters.CharFilter(lookup_expr="istartswith")
+    name = filters.CharFilter(method="filter_name")
 
     class Meta:
         model = Ingredient
         fields = ("name",)
+
+    def filter_name(self, queryset, name, value):
+        return queryset.filter(name__icontains=value).order_by(
+            Case(
+                When(name__istartswith=value, then=0),
+                When(name__icontains=value, then=1),
+                default=2,
+                output_field=IntegerField(),
+            ),
+            "name",
+        )

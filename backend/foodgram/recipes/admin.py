@@ -23,7 +23,6 @@ class TagAdmin(admin.ModelAdmin):
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ("pk", "name", "measurement_unit")
     search_fields = ("name",)
-    list_filter = ("name",)
     empty_value_display = settings.EMPTY_VALUE
 
 
