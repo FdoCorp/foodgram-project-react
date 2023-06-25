@@ -35,6 +35,7 @@ class UserSignUpSerializer(UserCreateSerializer):
 
         extra_kwargs = {'password': {'write_only': True}}
 
+
 class UserGetSerializer(UserSerializer):
     """Сериализатор для работы с информацией о пользователях."""
 
