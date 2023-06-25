@@ -3,7 +3,9 @@ services:
 
   frontend:
     container_name: foodgram-react
-    image: frodo80/foodgram-frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     volumes:
       - ./frontend/:/app/result_build/
 
@@ -18,7 +20,7 @@ services:
 
   backend:
     container_name: foodgram-django
-    image: frodo80/foodgram-backend:latest
+    build: ../backend/
     restart: always
     volumes:
       - static_dir:/app/foodgram/static/
@@ -27,7 +29,8 @@ services:
       - db
     env_file:
       - ./.env
-
+    ports:
+      - "8000:8000"
 
   nginx:
     container_name: foodgram-nginx
