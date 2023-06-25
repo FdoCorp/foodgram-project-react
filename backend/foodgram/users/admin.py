@@ -11,11 +11,11 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("username", "email")
     empty_value_display = settings.EMPTY_VALUE
 
-
     def save_model(self, request, obj, form, change):
         if 'password' in form.changed_data:
             obj.set_password(form.cleaned_data['password'])
         super().save_model(request, obj, form, change)
+
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
